@@ -1,3 +1,4 @@
+import { Effect } from "./effect";
 import { context } from "./internals/context";
 import { Observable, observable } from "./observable";
 
@@ -21,7 +22,7 @@ describe("the observable function", () => {
     const spyFn = jest.fn();
 
     // push dependency
-    context.push(spyFn);
+    context.push(new Effect(spyFn));
     count();
     context.pop();
 
@@ -39,19 +40,6 @@ describe("the Observable class", () => {
 
     observable$.setValue(3);
     expect(spyFn.mock.calls.length).toBe(1);
-  });
-
-  it("clears all its subscriptions", () => {
-    const spyFn = jest.fn();
-    const spyFn2 = jest.fn();
-    const observable$ = new Observable(1);
-
-    observable$.subscribe(spyFn);
-    observable$.subscribe(spyFn2);
-    observable$.clearSubscriptions();
-
-    observable$.setValue(3);
-    expect(spyFn.mock.calls.length).toBe(0);
   });
 
   it("unsubscribes to a subscription", () => {

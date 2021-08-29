@@ -1,7 +1,12 @@
-import { getActiveContext } from "./internals/context";
+import { Effect } from "./effect";
+import {
+  getActiveContext,
+  getIsTransactionInProgress,
+  pendingEffects
+} from "./internals/context";
 
-export class Observable<T> {
-  private readonly subscriptions = new Set<Function>();
+export class Observable<T = unknown> {
+  private readonly subscriptions = new Set<Effect>();
 
   constructor(private value: T) {}
 
@@ -13,31 +18,37 @@ export class Observable<T> {
 
   getValue() {
     const activeContext = getActiveContext();
-    if (activeContext) this.subscribe(activeContext);
+    if (activeContext) {
+      this.subscriptions.add(activeContext);
+      activeContext.addDependency(this);
+    }
 
     return this.value;
   }
 
   subscribe(subscription: Function) {
-    this.subscriptions.add(subscription);
+    const effect = new Effect(subscription);
+    this.subscriptions.add(effect);
 
-    return () => this.subscriptions.delete(subscription);
+    return () => this.unsubscribe(effect);
   }
 
-  clearSubscriptions() {
-    for (const subscriptionFn of Array.from(this.subscriptions)) {
-      this.subscriptions.delete(subscriptionFn);
-    }
+  unsubscribe(effect: Effect) {
+    this.subscriptions.delete(effect);
   }
 
   private runSubscriptions() {
-    for (const subscriptionFn of Array.from(this.subscriptions)) {
-      subscriptionFn();
+    for (const effect of Array.from(this.subscriptions)) {
+      if (getIsTransactionInProgress()) {
+        pendingEffects.add(effect);
+      } else {
+        effect.execute();
+      }
     }
   }
 }
 
-export function observable<T>(value: T) {
+export function observable<T>(value?: T) {
   const internal = new Observable<T>(value);
 
   return [
