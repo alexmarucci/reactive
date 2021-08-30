@@ -25,3 +25,15 @@ export function getIsTransactionInProgress() {
 export function setIsTransactionInProgress(isProgress = true) {
   isTransaction = isProgress;
 }
+
+let asyncContext = false;
+
+export function isAsyncContext() {
+  return asyncContext;
+}
+
+export function waitForInternal(callback: Function) {
+  asyncContext = true;
+  callback();
+  asyncContext = false;
+}

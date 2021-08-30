@@ -6,7 +6,12 @@
   </head>
 
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <controller name="countCtrl">
+        <input placeholder="Enter name" />
+        <div>Name: <model name="name"></model></div>
+      </controller>
+    </div>
 
     <script src="src/index.ts"></script>
   </body>

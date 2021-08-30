@@ -4,21 +4,65 @@ import {
   getIsTransactionInProgress,
   pendingEffects
 } from "./internals/context";
+import { promiseList } from "./utils";
+
+let isTracking = true;
+
+export function track(callback: Function, shouldTrack = true) {
+  const previousTrackingState = isTracking;
+
+  isTracking = shouldTrack;
+  const callbackReturn = callback();
+  isTracking = previousTrackingState;
+
+  return callbackReturn;
+}
+
+export function untrack(callback: Function) {
+  return track(callback, false);
+}
 
 export class Observable<T = unknown> {
   private readonly subscriptions = new Set<Effect>();
 
-  constructor(private value: T) {}
+  private value!: T;
+  private previousValue?: T;
+
+  constructor(value: T, private readonly uniqueValues = true) {
+    this.setValue(value);
+  }
 
   setValue(newValue: T) {
+    if (this.uniqueValues && this.value === newValue) {
+      return;
+    }
+
+    if (newValue instanceof Promise) {
+      promiseList.add(newValue);
+      newValue.then((v) => this.setValue(v));
+      return;
+    }
+
+    this.previousValue = this.value;
     this.value = newValue;
 
+    console.log(
+      "set value",
+      newValue,
+      "with subs",
+      Array.from(this.subscriptions).length
+    );
     this.runSubscriptions();
+  }
+
+  getPreviousValue() {
+    return this.previousValue;
   }
 
   getValue() {
     const activeContext = getActiveContext();
-    if (activeContext) {
+
+    if (activeContext && isTracking) {
       this.subscriptions.add(activeContext);
       activeContext.addDependency(this);
     }
@@ -48,11 +92,38 @@ export class Observable<T = unknown> {
   }
 }
 
-export function observable<T>(value?: T) {
-  const internal = new Observable<T>(value);
+type valueType<T> = T | Promise<T>;
 
-  return [
-    () => internal.getValue(),
-    (value: T) => internal.setValue(value)
-  ] as [typeof internal.getValue, typeof internal.setValue];
+function isFunction(value): value is Function {
+  return typeof value === "function";
+}
+
+export function observable<T>(
+  value?: () => valueType<T> | valueType<T>,
+  { uniqueValues = undefined } = {}
+) {
+  const internal = new Observable<T>(
+    (isFunction(value) ? value() : value) as T,
+    uniqueValues
+  );
+
+  const getter = () => internal.getValue();
+  getter.internal_ = internal;
+  const setter = (value: T) => internal.setValue(value);
+
+  return [getter, setter] as [
+    typeof internal.getValue,
+    typeof internal.setValue
+  ];
+}
+
+export function previousValue(getter: Function) {
+  const internalObservable = (getter as unknown) as { internal_: Observable };
+  return internalObservable.internal_.getPreviousValue();
+}
+
+export function whenChanged(...getterList: Function[]) {
+  return () => {
+    return getterList.every((getter) => previousValue(getter) !== getter());
+  };
 }

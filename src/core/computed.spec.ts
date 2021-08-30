@@ -1,4 +1,5 @@
 import { computed } from "./computed";
+import { effect } from "./effect";
 import { observable } from "./observable";
 
 describe("the computed function", () => {
@@ -24,5 +25,16 @@ describe("the computed function", () => {
     setLastName("Foo");
     expect(spyComputedFn).toHaveBeenCalledTimes(2);
     expect(fullName()).toBe("John Foo");
+  });
+
+  it("does not recompute when the condition is not met", () => {
+    const [name, setName] = observable("John");
+    const computedSpy = jest.fn(() => `My name is: ${name()}`);
+    const decoratedName = computed(computedSpy, () => !!name().length);
+
+    setName("");
+
+    expect(decoratedName()).toBe("My name is: John");
+    expect(computedSpy).toHaveBeenCalledTimes(1);
   });
 });

@@ -21,6 +21,17 @@ describe("the effect function", () => {
 
     expect(spyEffect).toHaveBeenCalledTimes(2);
   });
+
+  it("does not execute when we do not pass the condition", () => {
+    const [count, setCount] = observable(0);
+    const spyEffect = jest.fn(() => count());
+
+    effect(spyEffect, () => false);
+
+    setCount(2);
+
+    expect(spyEffect).toHaveBeenCalledTimes(0);
+  });
 });
 
 describe("the Effect class", () => {
