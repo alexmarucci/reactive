@@ -1,28 +1,8 @@
 // import {} from '../../../ex';
 
 import { h } from "../../../../src/render/h";
-import { effect } from "../../../../src/core/effect";
 import { observable } from "../../../../src/core/observable";
-
-function resolve(d) {
-  return typeof d === "function" ? d() : d;
-}
-
-function bindText(staticText, ...dynamic): (t: Text) => Text {
-  const computeText = () =>
-    staticText
-      .map((part, index) => {
-        if (dynamic[index]) return part + resolve(dynamic[index]);
-        return part;
-      })
-      .join("");
-
-  return (textNode: Text) => {
-    effect(() => (textNode.data = computeText()));
-
-    return textNode;
-  };
-}
+import { bindText } from "../../../../src/core/dom-utils";
 
 const [name, setName_] = observable("");
 
