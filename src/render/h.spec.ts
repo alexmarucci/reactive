@@ -1,4 +1,4 @@
-import { h } from "./h";
+import { h, render } from "./h";
 
 describe("the hyperscript function", () => {
   it("creates an empty element", () => {
@@ -56,5 +56,23 @@ describe("the hyperscript function", () => {
     element.click();
 
     expect(clickHandler).toHaveBeenCalled();
+  });
+
+  it("executes a function if passed as attribute value", () => {
+    const a = document.createElement("a");
+    const fakeCallable = jest.fn();
+    h(a, { attribute: { type: "function", callable: fakeCallable } });
+
+    expect(fakeCallable).toHaveBeenCalledWith(a, "attribute");
+  });
+});
+
+describe("The render function", () => {
+  const rootElement = document.createElement("div");
+
+  it("renders d DOM element", () => {
+    render(h("h1", "Hello"), rootElement);
+
+    expect(rootElement.innerHTML).toBe("<h1>Hello</h1>");
   });
 });

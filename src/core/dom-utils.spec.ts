@@ -1,7 +1,7 @@
 import { bindText } from "./dom-utils";
 import { observable } from "./observable";
 
-describe.only("the bindText literal", () => {
+describe("the bindText literal", () => {
   it("returns an empty string", () => {
     const text = document.createTextNode("");
 

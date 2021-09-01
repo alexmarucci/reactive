@@ -1,18 +1,18 @@
 // import {} from '../../../ex';
 
-import { h } from "../../../../src/render/h";
+import { h, render } from "../../../../src/render/h";
 import { observable } from "../../../../src/core/observable";
-import { bindText } from "../../../../src/core/dom-utils";
+import { bindText, bindToProperty } from "../../../../src/core/dom-utils";
 
-const [name, setName_] = observable("");
+const [name, setName] = observable("");
 
-export const setName = setName_;
-
-const el = h("div", { class: "name" }, [
+const view = h("div", { class: "name" }, [
+  h("button", { click: () => setName("") }, "Reset"),
   h("input", {
-    input: (e) => setName((e.target as HTMLInputElement).value)
+    input: (e: Event) => setName((<HTMLInputElement>e.target).value),
+    value: bindToProperty(name)
   }),
   h("h1", bindText`my name is ${name}`)
 ]);
 
-document.body.appendChild(el);
+render(view, document.body);

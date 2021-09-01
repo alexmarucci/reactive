@@ -41,3 +41,35 @@ export function bindText(
     return textNode;
   };
 }
+
+function wrapCallable(callable) {
+  return { type: "function", callable };
+}
+
+export const bind = (
+  expression: () => unknown,
+  type: "attribute" | "property" = "attribute"
+) =>
+  wrapCallable((element: HTMLElement, attributeName: string) => {
+    effect(() => {
+      if (type === "attribute") {
+        // let it fail if not a string
+        element.setAttribute(attributeName, expression() as string);
+
+        if (typeof expression() !== "string") {
+          throw (
+            `Error binding attribute to ${expression.toString()}` +
+            `which was expected to be a string`
+          );
+        }
+      } else if (type === "property") {
+        element[attributeName] = expression();
+      }
+    });
+  });
+
+export const bindToAttibute = (expression: () => unknown) =>
+  bind(expression, "attribute");
+
+export const bindToProperty = (expression: () => unknown) =>
+  bind(expression, "property");

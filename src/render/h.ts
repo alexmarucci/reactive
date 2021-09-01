@@ -1,4 +1,11 @@
-type Attributes = Record<string, string | EventListenerOrEventListenerObject>;
+export interface AttributeObject {
+  type: string;
+  callable: (e: HTMLElement, k: string) => void;
+}
+type Attributes = Record<
+  string,
+  AttributeObject | string | EventListenerOrEventListenerObject
+>;
 type Children = Array<HTMLElement | Text>;
 type TextContent = ((t: Text) => Text) | string;
 type Selector = keyof HTMLElementTagNameMap | string | HTMLElement;
@@ -35,6 +42,8 @@ function constructElement(selector: Selector, attributes: Attributes = {}) {
   for (const [key, value] of Object.entries(attributes)) {
     if (assert<EventListenerOrEventListenerObject>(value, "function")) {
       element.addEventListener(key, value);
+    } else if (assert<AttributeObject>(value, "object")) {
+      if (value.type === "function") value.callable(element, key);
     } else {
       element.setAttribute(key, value);
     }
@@ -100,4 +109,9 @@ export function h(
   for (const child of children) element.appendChild(child);
 
   return element;
+}
+
+export function render(template: HTMLElement, root: HTMLElement) {
+  root.textContent = "";
+  root.appendChild(template);
 }
