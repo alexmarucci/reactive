@@ -1,6 +1,6 @@
 import { h } from "./h";
 
-describe.only("the hyperscript function", () => {
+describe("the hyperscript function", () => {
   it("creates an empty element", () => {
     expect(h("div").outerHTML).toBe("<div></div>");
   });
