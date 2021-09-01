@@ -57,9 +57,9 @@ export const bind = (
         element.setAttribute(attributeName, expression() as string);
 
         if (typeof expression() !== "string") {
-          throw (
+          throw new Error(
             `Error binding attribute to ${expression.toString()}` +
-            `which was expected to be a string`
+              `which was expected to be a string`
           );
         }
       } else if (type === "property") {

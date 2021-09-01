@@ -1,4 +1,4 @@
-import { bindText } from "./dom-utils";
+import { bindText, bindToAttibute, bindToProperty } from "./dom-utils";
 import { observable } from "./observable";
 
 describe("the bindText literal", () => {
@@ -44,5 +44,46 @@ describe("the bindText literal", () => {
     bindText`Bind to Div`(div);
 
     expect(div.textContent).toBe("Bind to Div");
+  });
+});
+
+describe("the bindToProperty function", () => {
+  const fakeInput = { value: "" };
+
+  it("sets a property of an element", () => {
+    bindToProperty(() => "123").callable(fakeInput, "value");
+
+    expect(fakeInput.value).toBe("123");
+  });
+
+  it("binds a property to an observable", () => {
+    const [name, setName] = observable("Foo");
+    bindToProperty(name).callable(fakeInput, "value");
+
+    expect(fakeInput.value).toBe("Foo");
+
+    setName("Bar");
+    expect(fakeInput.value).toBe("Bar");
+  });
+});
+
+describe("the bindToAttribute function", () => {
+  const input = document.createElement("input");
+  const setAttributeSpy = jest.spyOn(input, "setAttribute");
+
+  it("sets an attribute of an element", () => {
+    bindToAttibute(() => "Foobar").callable(input, "value");
+
+    expect(setAttributeSpy).toHaveBeenCalledWith("value", "Foobar");
+  });
+
+  it("binds an attribute to an observable", () => {
+    const [name, setName] = observable("Foo");
+    bindToAttibute(name).callable(input, "value");
+
+    expect(setAttributeSpy).toHaveBeenCalledWith("value", "Foo");
+
+    setName("Bar");
+    expect(setAttributeSpy).toHaveBeenCalledWith("value", "Bar");
   });
 });
