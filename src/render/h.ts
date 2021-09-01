@@ -1,6 +1,6 @@
 type Attributes = Record<string, string | EventListenerOrEventListenerObject>;
 type Children = Array<HTMLElement | Text>;
-type TextContent = string;
+type TextContent = ((t: Text) => Text) | string;
 type Selector = keyof HTMLElementTagNameMap | string | HTMLElement;
 type ElementReturnType<K> = K extends keyof HTMLElementTagNameMap
   ? HTMLElementTagNameMap[K]
@@ -12,10 +12,19 @@ function assert<T>(value: unknown, type: string): value is T {
   return typeof value === type;
 }
 
-function wrapTextContent(textOrChildren: Children | TextContent): Children {
-  return assert<string>(textOrChildren, "string")
-    ? [document.createTextNode(textOrChildren)]
-    : textOrChildren;
+function wrapTextContent(
+  textOrChildren: Children | TextContent | Function
+): Children {
+  const textNode = document.createTextNode("");
+
+  if (assert<Function>(textOrChildren, "function")) {
+    return [textOrChildren(textNode)];
+  } else if (assert<string>(textOrChildren, "string")) {
+    textNode.data = textOrChildren;
+    return [textNode];
+  } else {
+    return textOrChildren;
+  }
 }
 
 function constructElement(selector: Selector, attributes: Attributes = {}) {
@@ -39,7 +48,8 @@ function extractAttributesAndChildren(
 ): [Attributes | undefined, Children | undefined] {
   if (
     Array.isArray(attributesOrChildren) ||
-    assert<TextContent>(attributesOrChildren, "string")
+    assert<TextContent>(attributesOrChildren, "string") ||
+    assert<TextContent>(attributesOrChildren, "function")
   ) {
     return [undefined, wrapTextContent(attributesOrChildren)];
   } else {
