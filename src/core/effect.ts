@@ -1,6 +1,6 @@
-import { awaitForInternal, context, isAsyncContext } from "./internals/context";
+import { context, isAsyncContext } from "./internals/context";
 import { Observable } from "./observable";
-import { pendingEffects } from "./utils";
+import { getActiveAsyncContext } from "./utils";
 
 export class Effect {
   private readonly dependencies = new Set<Observable>();
@@ -11,12 +11,19 @@ export class Effect {
   ) {}
 
   execute() {
-    if (!this.executeCondition()) return;
+    if (!this.executeInContext(this.executeCondition)) return;
+
     this.clearDependencies();
 
+    this.executeInContext(this.callback);
+  }
+
+  private executeInContext(callback: Function) {
     context.push(this);
-    this.callback();
+    const returnStatement = callback();
     context.pop();
+
+    return returnStatement;
   }
 
   addDependency(observable: Observable) {
@@ -36,7 +43,8 @@ export function effect(callback: Function, condition?: () => boolean) {
   const internal = new Effect(callback, condition);
 
   if (isAsyncContext()) {
-    pendingEffects.add(internal);
+    const { pendingEffects } = getActiveAsyncContext();
+    if (pendingEffects) pendingEffects.add(internal);
   } else {
     internal.execute();
   }

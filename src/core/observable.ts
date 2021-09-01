@@ -4,7 +4,7 @@ import {
   getIsTransactionInProgress,
   pendingEffects
 } from "./internals/context";
-import { promiseList } from "./utils";
+import { getActiveAsyncContext } from "./utils";
 
 let isTracking = true;
 
@@ -22,6 +22,14 @@ export function untrack(callback: Function) {
   return track(callback, false);
 }
 
+function equalValues<T>(value: T, newValue: T): boolean {
+  if (!Array.isArray(value) && !(typeof value === "object")) {
+    return value === newValue;
+  }
+
+  return false;
+}
+
 export class Observable<T = unknown> {
   private readonly subscriptions = new Set<Effect>();
 
@@ -33,12 +41,13 @@ export class Observable<T = unknown> {
   }
 
   setValue(newValue: T) {
-    if (this.uniqueValues && this.value === newValue) {
+    if (this.uniqueValues && equalValues(this.value, newValue)) {
       return;
     }
 
     if (newValue instanceof Promise) {
-      promiseList.add(newValue);
+      const { promiseList } = getActiveAsyncContext();
+      if (promiseList) promiseList.add(newValue);
       newValue.then((v) => this.setValue(v));
       return;
     }
@@ -46,12 +55,6 @@ export class Observable<T = unknown> {
     this.previousValue = this.value;
     this.value = newValue;
 
-    console.log(
-      "set value",
-      newValue,
-      "with subs",
-      Array.from(this.subscriptions).length
-    );
     this.runSubscriptions();
   }
 
@@ -99,7 +102,7 @@ function isFunction(value): value is Function {
 }
 
 export function observable<T>(
-  value?: () => valueType<T> | valueType<T>,
+  value?: (() => valueType<T>) | valueType<T>,
   { uniqueValues = undefined } = {}
 ) {
   const internal = new Observable<T>(

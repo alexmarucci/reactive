@@ -4,28 +4,39 @@ import { effect } from "./core/effect";
 import { Observable, observable } from "./core/observable";
 import { waitFor } from "./core/utils";
 
-function controller(name, controllerFn) {
-  const ctrlEl = document.querySelector(`controller[name="${name}"]`);
+// function delay(value, delayTime = 300) {
+//   return new Promise((r) => {
+//     setTimeout(() => r(value), delayTime);
+//   });
+// }
 
-  // TODO: throw error or warn
-  if (!ctrlEl) return;
+// function print(...text) {
+//   document.body.append(document.createTextNode(text.join()));
+//   document.body.append(document.createElement("br"));
+// }
 
-  const modelList = Array.from(ctrlEl.querySelectorAll("model"));
-  const observableList = {};
+// function controller(controllerId, controllerFn) {
+//   const ctrlEl = document.getElementById(controllerId);
 
-  for (const model of modelList) {
-    const name = model.getAttribute("name");
-    const [g, s] = observable(model.textContent);
+//   // TODO: throw error or warn
+//   if (!ctrlEl) return;
 
-    const textNode = document.createTextNode("");
-    model.append(textNode);
-    effect(() => (textNode.data = g()));
+//   const modelList = Array.from(ctrlEl.querySelectorAll("model"));
+//   const observableList = {};
 
-    observableList[name] = [g, s, model];
-  }
+//   for (const model of modelList) {
+//     const name = model.getAttribute("name");
+//     const [g, s] = observable(model.textContent);
 
-  controllerFn(ctrlEl, observableList);
-}
+//     const textNode = document.createTextNode("");
+//     model.append(textNode);
+//     effect(() => (textNode.data = g()));
+
+//     observableList[name] = [g, s, model];
+//   }
+
+//   controllerFn(ctrlEl, observableList);
+// }
 
 // const input = document.createElement("input");
 // input.placeholder = "Enter name";
@@ -35,28 +46,23 @@ function controller(name, controllerFn) {
 // document.body.append(input);
 // document.body.append(display);
 
-controller("countCtrl", (element, { name }) => {
-  const [input] = element.querySelectorAll(["input"]);
-  const [, setName] = name;
+// controller("countCtrl", (element, { name }) => {
+//   const [input] = element.querySelectorAll(["input"]);
+//   const [, setName] = name;
 
-  input.oninput = () => setName(input.value);
-});
+//   input.oninput = () => setName(input.value);
+// });
 
-const wo = (() => {
-  const [count, setCount] = observable(1);
+// const wo = (() => {
+//   const [count, setCount] = observable(1);
 
-  return {
-    count,
-    sum(value: number) {
-      action(() => setCount(count() * value));
-    }
-  };
-})();
+//   return {
+//     count,
+//     sum(value: number) {
+//       action(() => setCount(count() * value));
+//     }
+//   };
+// })();
 
-effect(() => console.log(wo.count()));
-wo.sum(10);
-
-waitFor(() => {
-  const [value] = observable(async () => "hello");
-  effect(() => (document.body.textContent = value()));
-});
+// effect(() => console.log(wo.count()));
+// wo.sum(10);

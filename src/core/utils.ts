@@ -1,17 +1,48 @@
 import { Effect } from "./effect";
 import { waitForInternal } from "./internals/context";
 
-export const promiseList: Set<Promise<unknown>> = new Set();
-export const pendingEffects: Set<Effect> = new Set();
+interface AsyncContext {
+  promiseList: Set<Promise<unknown>>;
+  pendingEffects: Set<Effect>;
+}
 
-function flushPendingEffects() {
-  for (const effect of Array.from(pendingEffects)) {
+const asyncContext: AsyncContext[] = [];
+
+export function getActiveAsyncContext(): AsyncContext {
+  return asyncContext[asyncContext.length - 1] || ({} as AsyncContext);
+}
+
+function flushPendingEffects(pendingEffects: Set<Effect>) {
+  for (const effect of [...Array.from(pendingEffects)]) {
     effect.execute();
+    pendingEffects.delete(effect);
+  }
+  pendingEffects.clear();
+}
+
+function flushPromiseList(promiseList: Set<Promise<unknown>>) {
+  for (const promise of [...Array.from(promiseList)]) {
+    promiseList.delete(promise);
   }
   promiseList.clear();
 }
 
 export function waitFor(callback: Function) {
+  asyncContext.push({
+    promiseList: new Set(),
+    pendingEffects: new Set()
+  });
+
   waitForInternal(callback);
-  Promise.all(promiseList).then(flushPendingEffects);
+
+  const { promiseList, pendingEffects } = getActiveAsyncContext();
+
+  if (promiseList) {
+    Promise.all(promiseList).then(() => {
+      flushPendingEffects(pendingEffects);
+      flushPromiseList(promiseList);
+    });
+  }
+
+  asyncContext.pop();
 }
