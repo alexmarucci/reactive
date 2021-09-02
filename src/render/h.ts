@@ -31,7 +31,18 @@ function wrapTextContent(
   }
 }
 
-function constructElement(selector: Selector, attributes: Attributes = {}) {
+function constructElement(
+  selector: Selector | Children,
+  attributes: Attributes = {}
+) {
+  const isChildren = (c: unknown): c is Children => Array.isArray(selector);
+  const isSelectorEmptyString =
+    assert<string>(selector, "string") && !selector.length;
+
+  if (isChildren(selector) || isSelectorEmptyString) {
+    return document.createDocumentFragment();
+  }
+
   const element = assert<string>(selector, "string")
     ? document.createElement(selector)
     : selector;
@@ -69,6 +80,7 @@ function extractAttributesAndChildren(
   }
 }
 
+export function h(children: Children): DocumentFragment;
 export function h<K extends Selector>(selector: K): ElementReturnType<K>;
 export function h<K extends Selector>(
   selector: K,
@@ -97,17 +109,21 @@ export function h<K extends Selector>(
 ): ElementReturnType<K>;
 
 export function h(
-  selector: Selector,
+  selector: Selector | Children,
   attributesOrChildren?: Attributes | Children | TextContent,
   optionalChildren?: Children | TextContent
 ) {
+  const selectorChildren = Array.isArray(selector) && selector;
   const [attributes, childrenFromAttributes] = extractAttributesAndChildren(
     attributesOrChildren
   );
 
   const element = constructElement(selector, attributes);
   const children =
-    wrapTextContent(optionalChildren) || childrenFromAttributes || [];
+    wrapTextContent(optionalChildren) ||
+    childrenFromAttributes ||
+    selectorChildren ||
+    [];
 
   for (const child of children) element.appendChild(child);
 

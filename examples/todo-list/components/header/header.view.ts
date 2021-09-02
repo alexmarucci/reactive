@@ -11,10 +11,11 @@ const [name, setName] = observable("");
 const view = h("div", { class: "name" }, [
   h("button", { click: () => setName("") }, "Reset"),
   h("input", {
-    input: (e: Event) => setName((<HTMLInputElement>e.target).value),
+    oninput: (e: Event) => setName((<HTMLInputElement>e.target).value),
+    // oninput: console.log,
     value: bindToProperty(name)
   }),
   h("h1", bindText`my name is ${name}`)
 ]);
 
-render(view, document.body);
+render(h("", [view]), document.body);

@@ -65,6 +65,11 @@ describe("the hyperscript function", () => {
 
     expect(fakeCallable).toHaveBeenCalledWith(a, "attribute");
   });
+
+  it("uses a document fragment if no selector is provided", () => {
+    expect(h("").toString()).toContain("DocumentFragment");
+    expect(h([]).toString()).toContain("DocumentFragment");
+  });
 });
 
 describe("The render function", () => {
