@@ -8,8 +8,8 @@ import { bindText, bindToProperty } from "../../../../src/core/dom-utils";
 const [name, setName] = observable("");
 
 // view/controller
-const view = h("div", { class: "name" }, [
-  h("button", { click: () => setName("") }, "Reset"),
+export const HeaderElement = h("div", { class: "name" }, [
+  h("button", { onclick: () => setName("") }, "Reset"),
   h("input", {
     oninput: (e: Event) => setName((<HTMLInputElement>e.target).value),
     // oninput: console.log,
@@ -17,5 +17,3 @@ const view = h("div", { class: "name" }, [
   }),
   h("h1", bindText`my name is ${name}`)
 ]);
-
-render(h([view]), document.body);

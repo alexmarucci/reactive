@@ -131,9 +131,9 @@ export function h(
 }
 
 export function render(
-  template: HTMLElement | DocumentFragment,
+  template: HTMLElement | DocumentFragment | HTMLElement[],
   root: HTMLElement
 ) {
   root.textContent = "";
-  root.appendChild(template);
+  root.appendChild(Array.isArray(template) ? h(template) : template);
 }
