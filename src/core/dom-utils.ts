@@ -50,34 +50,31 @@ export function bindText(
   };
 }
 
+function wrapCallable(callable): AttributeObject {
+  return { type: "function", callable };
+}
+
 export function bindClass(
   staticText: TemplateStringsArray,
   ...dynamic: Array<(() => string | boolean) | string | boolean>
-): AttributeObject {
-  return {
-    type: "function",
-    callable: (element: HTMLElement) => {
-      // add static classes
-      for (const part of staticText) {
-        const trimPart = part.trim();
-        if (trimPart) element.className += trimPart;
-      }
-
-      for (const dynamicPart of dynamic) {
-        if (!dynamicPart) continue;
-
-        effect(() => {
-          const computedText = resolve(dynamicPart);
-
-          if (computedText) element.className += computedText;
-        });
-      }
+) {
+  return wrapCallable((element: HTMLElement) => {
+    // add static classes
+    for (const part of staticText) {
+      const trimPart = part.trim();
+      if (trimPart) element.className += trimPart;
     }
-  };
-}
 
-function wrapCallable(callable) {
-  return { type: "function", callable };
+    for (const dynamicPart of dynamic) {
+      if (!dynamicPart) continue;
+
+      effect(() => {
+        const computedText = resolve(dynamicPart);
+
+        if (computedText) element.className += computedText;
+      });
+    }
+  });
 }
 
 export const bind = (
