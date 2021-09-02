@@ -4,8 +4,10 @@ import { h, render } from "../../../../src/render/h";
 import { observable } from "../../../../src/core/observable";
 import { bindText, bindToProperty } from "../../../../src/core/dom-utils";
 
+// model
 const [name, setName] = observable("");
 
+// view/controller
 const view = h("div", { class: "name" }, [
   h("button", { click: () => setName("") }, "Reset"),
   h("input", {

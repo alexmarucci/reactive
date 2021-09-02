@@ -1,74 +1,68 @@
+import { h } from "../../render/h";
 import {
   bindClass,
   bindText,
   bindToAttibute,
   bindToProperty
-} from "./dom-utils";
-import { observable } from "./observable";
+} from "../dom-utils";
+import { observable } from "../observable";
 
 describe("the bindText literal", () => {
-  it("returns an empty string", () => {
-    const text = document.createTextNode("");
+  function expectBindText(staticText, ...dynamic) {
+    const element = h("h1", bindText(staticText, ...dynamic));
+    return expect(element.textContent);
+  }
 
-    expect(bindText``(text).data).toBe("");
+  it("returns an empty string", () => {
+    expectBindText``.toBe("");
   });
 
   it("interpolates static and dynamic strings", () => {
-    const text = document.createTextNode("");
-
-    bindText`Hello ${"World"}`(text);
-
-    expect(text.data).toBe("Hello World");
+    expectBindText`Hello ${"World"}`.toBe("Hello World");
   });
 
   it("interpolates static and dynamic expressions", () => {
-    const text = document.createTextNode("");
-
-    bindText`Hello ${() => "world"}`(text);
-
-    expect(text.data).toBe("Hello world");
+    expectBindText`Hello ${() => "world"}`.toBe("Hello world");
   });
 
   it("updates when bound to an observable", () => {
     const [name, setName] = observable("John");
-    const text = document.createTextNode("Hello world");
+    const div = h("div", bindText`Hello ${name}`);
 
-    bindText`Hello ${name}`(text);
-
-    expect(text.data).toBe("Hello John");
+    expect(div.textContent).toBe("Hello John");
 
     setName("Jacob");
-    expect(text.data).toBe("Hello Jacob");
+    expect(div.textContent).toBe("Hello Jacob");
   });
 
-  it("binds to a custom element", () => {
+  it("binds to a custom element replacing its text content", () => {
     const div = document.createElement("div");
 
     div.textContent = "Content to be replaced";
 
-    bindText`Bind to Div`(div);
-
-    expect(div.textContent).toBe("Bind to Div");
+    expect(h(div, bindText`Bind to Div`).textContent).toBe("Bind to Div");
   });
 });
 
 describe("the bindToProperty function", () => {
-  const fakeInput = ({ value: "" } as unknown) as HTMLInputElement;
-
   it("sets a property of an element", () => {
-    bindToProperty(() => "123")(fakeInput, "value");
+    const input = h("input", {
+      value: bindToProperty(() => "123")
+    });
 
-    expect(fakeInput.value).toBe("123");
+    expect(input.value).toBe("123");
   });
 
   it("binds a property to an observable", () => {
     const [name, setName] = observable("Foo");
-    bindToProperty(name)(fakeInput, "value");
+    const input = h("input", {
+      value: bindToProperty(name)
+    });
 
-    expect(fakeInput.value).toBe("Foo");
+    expect(input.value).toBe("Foo");
 
     setName("Bar");
-    expect(fakeInput.value).toBe("Bar");
+    expect(input.value).toBe("Bar");
   });
 });
 
@@ -77,14 +71,14 @@ describe("the bindToAttribute function", () => {
   const setAttributeSpy = jest.spyOn(input, "setAttribute");
 
   it("sets an attribute of an element", () => {
-    bindToAttibute(() => "Foobar")(input, "value");
+    h(input, { value: bindToAttibute(() => "Foobar") });
 
     expect(setAttributeSpy).toHaveBeenCalledWith("value", "Foobar");
   });
 
   it("binds an attribute to an observable", () => {
     const [name, setName] = observable("Foo");
-    bindToAttibute(name)(input, "value");
+    h(input, { value: bindToAttibute(name) });
 
     expect(setAttributeSpy).toHaveBeenCalledWith("value", "Foo");
 
@@ -95,11 +89,11 @@ describe("the bindToAttribute function", () => {
 
 describe("The bindClass function", () => {
   function expectBindClassname(staticText, ...args) {
-    const element = document.createElement("div");
-    bindClass(staticText, ...args)(element);
+    const element = h("div", { class: bindClass(staticText, ...args) });
 
     return expect(element.className);
   }
+
   it("binds to a classname", () => {
     expectBindClassname`classname`.toBe("classname");
   });

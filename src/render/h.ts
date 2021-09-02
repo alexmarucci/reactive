@@ -1,10 +1,7 @@
-export interface AttributeObject {
-  type: string;
-  callable: (e: HTMLElement, k: string) => void;
-}
+type AttributeCallback = (e: HTMLElement, k: string) => void;
 type Attributes = Record<
   string,
-  AttributeObject | string | EventListenerOrEventListenerObject
+  AttributeCallback | string | EventListenerOrEventListenerObject
 >;
 type Children = Array<HTMLElement | Text>;
 type TextContent = ((t: Text) => Text) | string;
@@ -39,13 +36,19 @@ function constructElement(selector: Selector, attributes: Attributes = {}) {
     ? document.createElement(selector)
     : selector;
 
+  // Clear up the element before construction
+  element.textContent = "";
+
   for (const [key, value] of Object.entries(attributes)) {
-    if (assert<EventListenerOrEventListenerObject>(value, "function")) {
-      element.addEventListener(key, value);
-    } else if (assert<AttributeObject>(value, "object")) {
-      if (value.type === "function") value.callable(element, key);
+    if (
+      /^(on)/.test(key) &&
+      assert<EventListenerOrEventListenerObject>(value, "function")
+    ) {
+      element.addEventListener(key.substring(2), value);
+    } else if (assert<AttributeCallback>(value, "function")) {
+      value(element, key);
     } else {
-      element.setAttribute(key, value);
+      element.setAttribute(key, value as string);
     }
   }
 

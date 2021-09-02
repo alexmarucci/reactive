@@ -50,15 +50,11 @@ export function bindText(
   };
 }
 
-function wrapCallable(callable): AttributeObject {
-  return { type: "function", callable };
-}
-
 export function bindClass(
   staticText: TemplateStringsArray,
   ...dynamic: Array<(() => string | boolean) | string | boolean>
 ) {
-  return wrapCallable((element: HTMLElement) => {
+  return (element: HTMLElement) => {
     // add static classes
     for (const part of staticText) {
       const trimPart = part.trim();
@@ -74,30 +70,29 @@ export function bindClass(
         if (computedText) element.className += computedText;
       });
     }
-  });
+  };
 }
 
 export const bind = (
   expression: () => unknown,
   type: "attribute" | "classname" | "property" = "attribute"
-) =>
-  wrapCallable((element: HTMLElement, attributeName: string) => {
-    if (["function", "object"].includes(typeof expression())) {
-      throw new Error(
-        `Error binding attribute to ${expression.toString()}` +
-          `which was expected to be a string`
-      );
-    }
+) => (element: HTMLElement, attributeName: string) => {
+  if (["function", "object"].includes(typeof expression())) {
+    throw new Error(
+      `Error binding attribute to ${expression.toString()}` +
+        `which was expected to be a string`
+    );
+  }
 
-    if (type === "attribute") {
-      // let it fail if not a string
-      effect(() => element.setAttribute(attributeName, expression() as string));
-    } else if (type === "property") {
-      effect(() => (element[attributeName] = expression()));
-    } else if (type === "classname") {
-      effect(() => element.classList.toggle(attributeName, !!expression()));
-    }
-  });
+  if (type === "attribute") {
+    // let it fail if not a string
+    effect(() => element.setAttribute(attributeName, expression() as string));
+  } else if (type === "property") {
+    effect(() => (element[attributeName] = expression()));
+  } else if (type === "classname") {
+    effect(() => element.classList.toggle(attributeName, !!expression()));
+  }
+};
 
 export const bindToAttibute = (expression: () => unknown) =>
   bind(expression, "attribute");

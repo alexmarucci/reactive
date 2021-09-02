@@ -39,12 +39,12 @@ describe("the hyperscript function", () => {
     );
   });
 
-  it("binds an event to an element when a function is passed", () => {
+  it("binds an event to an element when the key starts with on*", () => {
     const element = h("h1");
     const eventListenerSpy = jest.spyOn(element, "addEventListener");
 
     const clickCallback = () => {};
-    h(element, { click: clickCallback });
+    h(element, { onclick: clickCallback });
 
     expect(eventListenerSpy).toHaveBeenCalledWith("click", clickCallback);
   });
@@ -61,7 +61,7 @@ describe("the hyperscript function", () => {
   it("executes a function if passed as attribute value", () => {
     const a = document.createElement("a");
     const fakeCallable = jest.fn();
-    h(a, { attribute: { type: "function", callable: fakeCallable } });
+    h(a, { attribute: fakeCallable });
 
     expect(fakeCallable).toHaveBeenCalledWith(a, "attribute");
   });
