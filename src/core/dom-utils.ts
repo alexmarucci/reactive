@@ -1,6 +1,7 @@
 import { effect } from "../../src/core/effect";
+import { AttributeObject } from "../render/h";
 
-function resolve(textOrComputed: string | Function) {
+function resolve(textOrComputed: unknown | Function) {
   return typeof textOrComputed === "function"
     ? textOrComputed()
     : textOrComputed;
@@ -24,14 +25,21 @@ function resolveNodeType(textOrElement: Text | HTMLElement): Text {
   }
 }
 
+function computedTextFactory(
+  staticText: TemplateStringsArray,
+  ...dynamic: Array<string | Function>
+) {
+  return () =>
+    staticText
+      .map((part, index) => part + resolve(dynamic[index] || ""))
+      .join("");
+}
+
 export function bindText(
   staticText: TemplateStringsArray,
   ...dynamic: Array<string | Function>
 ): (t: HTMLElement | Text) => Text {
-  const computedText = () =>
-    staticText
-      .map((part, index) => part + resolve(dynamic[index] || ""))
-      .join("");
+  const computedText = computedTextFactory(staticText, ...dynamic);
 
   return (textOrElement: HTMLElement | Text) => {
     const textNode = resolveNodeType(textOrElement);
@@ -42,30 +50,56 @@ export function bindText(
   };
 }
 
+export function bindClass(
+  staticText: TemplateStringsArray,
+  ...dynamic: Array<(() => string | boolean) | string | boolean>
+): AttributeObject {
+  return {
+    type: "function",
+    callable: (element: HTMLElement) => {
+      // add static classes
+      for (const part of staticText) {
+        const trimPart = part.trim();
+        if (trimPart) element.className += trimPart;
+      }
+
+      for (const dynamicPart of dynamic) {
+        if (!dynamicPart) continue;
+
+        effect(() => {
+          const computedText = resolve(dynamicPart);
+
+          if (computedText) element.className += computedText;
+        });
+      }
+    }
+  };
+}
+
 function wrapCallable(callable) {
   return { type: "function", callable };
 }
 
 export const bind = (
   expression: () => unknown,
-  type: "attribute" | "property" = "attribute"
+  type: "attribute" | "classname" | "property" = "attribute"
 ) =>
   wrapCallable((element: HTMLElement, attributeName: string) => {
-    effect(() => {
-      if (type === "attribute") {
-        // let it fail if not a string
-        element.setAttribute(attributeName, expression() as string);
+    if (["function", "object"].includes(typeof expression())) {
+      throw new Error(
+        `Error binding attribute to ${expression.toString()}` +
+          `which was expected to be a string`
+      );
+    }
 
-        if (typeof expression() !== "string") {
-          throw new Error(
-            `Error binding attribute to ${expression.toString()}` +
-              `which was expected to be a string`
-          );
-        }
-      } else if (type === "property") {
-        element[attributeName] = expression();
-      }
-    });
+    if (type === "attribute") {
+      // let it fail if not a string
+      effect(() => element.setAttribute(attributeName, expression() as string));
+    } else if (type === "property") {
+      effect(() => (element[attributeName] = expression()));
+    } else if (type === "classname") {
+      effect(() => element.classList.toggle(attributeName, !!expression()));
+    }
   });
 
 export const bindToAttibute = (expression: () => unknown) =>

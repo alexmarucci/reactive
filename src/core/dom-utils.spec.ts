@@ -1,4 +1,9 @@
-import { bindText, bindToAttibute, bindToProperty } from "./dom-utils";
+import {
+  bindClass,
+  bindText,
+  bindToAttibute,
+  bindToProperty
+} from "./dom-utils";
 import { observable } from "./observable";
 
 describe("the bindText literal", () => {
@@ -85,5 +90,53 @@ describe("the bindToAttribute function", () => {
 
     setName("Bar");
     expect(setAttributeSpy).toHaveBeenCalledWith("value", "Bar");
+  });
+});
+
+describe("The bindClass function", () => {
+  function expectBindClassname(staticText, ...args) {
+    const element = document.createElement("div");
+    bindClass(staticText, ...args).callable(element, "");
+
+    return expect(element.className);
+  }
+  it("binds to a classname", () => {
+    expectBindClassname`classname`.toBe("classname");
+  });
+
+  it("binds multiple classnames", () => {
+    expectBindClassname`multiple classnames`.toBe("multiple classnames");
+  });
+
+  it("binds a static expression", () => {
+    expectBindClassname`${"multi classname"}`.toBe("multi classname");
+  });
+
+  it("binds a dynamic expression", () => {
+    expectBindClassname`${() => "classname"}`.toBe("classname");
+  });
+
+  it("updates when bound to an observable", () => {
+    const element = document.createElement("div");
+    const [isActive, setIsActive] = observable(false);
+
+    bindClass`${() => (isActive() ? "active" : "")}`.callable(element, "");
+
+    expect(element.className).toBe("");
+
+    setIsActive(true);
+    expect(element.className).toBe("active");
+  });
+
+  it("filters falsy values", () => {
+    expectBindClassname`${false && "class"} ${undefined}`.toBe("");
+  });
+
+  it("filters falsy expressions", () => {
+    expectBindClassname`${() => null && "class"}`.toBe("");
+  });
+
+  it("filters whitespaces", () => {
+    expectBindClassname`  hello   `.toBe("hello");
   });
 });
