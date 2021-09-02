@@ -130,7 +130,10 @@ export function h(
   return element;
 }
 
-export function render(template: HTMLElement, root: HTMLElement) {
+export function render(
+  template: HTMLElement | DocumentFragment,
+  root: HTMLElement
+) {
   root.textContent = "";
   root.appendChild(template);
 }

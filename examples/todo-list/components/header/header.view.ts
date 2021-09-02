@@ -18,4 +18,4 @@ const view = h("div", { class: "name" }, [
   h("h1", bindText`my name is ${name}`)
 ]);
 
-render(h("", [view]), document.body);
+render(h([view]), document.body);
