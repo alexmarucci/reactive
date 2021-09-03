@@ -120,12 +120,12 @@ export function observable<T>(
   ];
 }
 
-export function previousValue(getter: Function) {
+export function previousValue<T extends () => unknown>(getter: T) {
   const internalObservable = (getter as unknown) as { internal_: Observable };
-  return internalObservable.internal_.getPreviousValue();
+  return internalObservable.internal_.getPreviousValue() as ReturnType<T>;
 }
 
-export function whenChanged(...getterList: Function[]) {
+export function whenChanged(...getterList: Array<() => unknown>) {
   return () => {
     return getterList.every((getter) => previousValue(getter) !== getter());
   };

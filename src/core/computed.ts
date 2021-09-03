@@ -1,14 +1,17 @@
 import { effect } from "./effect";
 import { observable } from "./observable";
 
-export function computed(computedFunction: Function, condition = () => true) {
+export function computed<T extends () => unknown>(
+  computedFunction: T,
+  condition = () => true
+) {
   const [getComputedValue, setComputedValue] = observable();
 
   effect(() => {
     if (condition()) setComputedValue(computedFunction());
   });
 
-  return getComputedValue;
+  return getComputedValue as T;
 }
 
 export function computedx(computedFunction: Function, condition = () => true) {

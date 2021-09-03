@@ -70,6 +70,16 @@ describe("the hyperscript function", () => {
     expect(h("").toString()).toContain("DocumentFragment");
     expect(h([]).toString()).toContain("DocumentFragment");
   });
+
+  it("creates a child from an expression", () => {
+    expect(h("div", [() => [h("h1")]]).innerHTML).toBe("<h1></h1>");
+  });
+
+  it("creates children from an expression", () => {
+    expect(h("div", [() => [h("h1"), h("h2")]]).innerHTML).toBe(
+      "<h1></h1><h2></h2>"
+    );
+  });
 });
 
 describe("The render function", () => {

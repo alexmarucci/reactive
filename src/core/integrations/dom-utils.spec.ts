@@ -3,7 +3,8 @@ import {
   bindClass,
   bindText,
   bindToAttibute,
-  bindToProperty
+  bindToProperty,
+  children
 } from "../dom-utils";
 import { observable } from "../observable";
 
@@ -132,5 +133,63 @@ describe("The bindClass function", () => {
 
   it("filters whitespaces", () => {
     expectBindClassname`  hello   `.toBe("hello");
+  });
+});
+
+describe("The children function", () => {
+  function expectChildren(expression) {
+    return expect(h("div", [children(() => expression)]).innerHTML);
+  }
+
+  it("adds an expression marker when there is no children", () => {
+    expectChildren(false).toBe("<!---->");
+    expectChildren("").toBe("<!---->");
+    expectChildren([]).toBe("<!---->");
+  });
+
+  it("adds a child to the element", () => {
+    expectChildren(h("h1")).toBe("<h1></h1>");
+  });
+
+  it("adds the children to the element", () => {
+    expectChildren([h("h1")]).toBe("<h1></h1>");
+  });
+
+  it("replaces the children with an expression marker", () => {
+    const [swap, setSwap] = observable(true);
+    const toggleSwap = () => setSwap(!swap());
+    const element = h("div", [children(() => swap() && h("h1"))]);
+
+    expect(element.innerHTML).toBe("<h1></h1>");
+
+    toggleSwap();
+    expect(element.innerHTML).toBe("<!---->");
+  });
+
+  it("adds the new children when the expression changes", () => {
+    const [swap, setSwap] = observable(false);
+    const toggleSwap = () => setSwap(!swap());
+    const element = h("div", [children(() => swap() && [h("h2")])]);
+
+    expect(element.innerHTML).toBe("<!---->");
+
+    toggleSwap();
+    expect(element.innerHTML).toBe("<h2></h2>");
+  });
+
+  it("toggle between children", () => {
+    const [swap, setSwap] = observable(true);
+    const toggleSwap = () => setSwap(!swap());
+    const element = h("div", [
+      children(() => (swap() ? [h("h1"), h("h1")] : [h("h2"), h("h2")]))
+    ]);
+
+    expect(element.innerHTML).toBe("<h1></h1><h1></h1>");
+
+    toggleSwap();
+    expect(element.innerHTML).toBe("<h2></h2><h2></h2>");
+
+    toggleSwap();
+    expect(element.innerHTML).toBe("<h1></h1><h1></h1>");
   });
 });

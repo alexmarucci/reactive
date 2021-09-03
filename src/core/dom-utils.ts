@@ -1,5 +1,6 @@
 import { effect } from "../../src/core/effect";
-import { AttributeObject } from "../render/h";
+import { computed } from "./computed";
+import { previousValue } from "./observable";
 
 function resolve(textOrComputed: unknown | Function) {
   return typeof textOrComputed === "function"
@@ -99,3 +100,49 @@ export const bindToAttibute = (expression: () => unknown) =>
 
 export const bindToProperty = (expression: () => unknown) =>
   bind(expression, "property");
+
+function isFalsy(value: unknown): boolean {
+  const emptyArray = Array.isArray(value) && !value.length;
+  return !value || emptyArray;
+}
+
+function asArray<T>(value: T | T[]): T[] {
+  return ([] as T[]).concat(value);
+}
+
+export function wrapElementToFragment(
+  elementList: HTMLElement[]
+): DocumentFragment {
+  const fragment = document.createDocumentFragment();
+
+  for (const element of elementList) {
+    fragment.appendChild(element);
+  }
+
+  return fragment;
+}
+
+export function children(expression: () => HTMLElement | HTMLElement[]) {
+  const expressionMarker = document.createComment("");
+
+  return (element: HTMLElement) => {
+    const children = computed(() => asArray(expression() || []));
+
+    element.appendChild(expressionMarker);
+
+    effect(() => {
+      const previousChildren = previousValue(children);
+      // // Clear previous fragments
+      if (!isFalsy(previousChildren)) {
+        previousChildren[0].before(expressionMarker);
+
+        wrapElementToFragment(previousChildren);
+      }
+
+      if (!isFalsy(children())) {
+        const fragment = wrapElementToFragment(children());
+        element.replaceChild(fragment, expressionMarker);
+      }
+    });
+  };
+}

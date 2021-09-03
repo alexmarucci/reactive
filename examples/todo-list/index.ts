@@ -1,4 +1,4 @@
-import { render } from "../../src/render/h";
+import { h, render } from "../../src/render/h";
 import { HeaderElement } from "./components/header/header.view";
 
-render([HeaderElement], document.body);
+render(h("section", { class: "todoapp" }, [HeaderElement()]), document.body);

@@ -1,9 +1,11 @@
 type AttributeCallback = (e: HTMLElement, k: string) => void;
 type Attributes = Record<
   string,
-  AttributeCallback | string | EventListenerOrEventListenerObject
+  AttributeCallback | string | boolean | EventListenerOrEventListenerObject
 >;
-type Children = Array<HTMLElement | Text>;
+type Children = Array<
+  ((e: HTMLElement | DocumentFragment) => unknown) | HTMLElement | Text
+>;
 type TextContent = ((t: Text) => Text) | string;
 type Selector = keyof HTMLElementTagNameMap | string | HTMLElement;
 type ElementReturnType<K> = K extends keyof HTMLElementTagNameMap
@@ -125,7 +127,14 @@ export function h(
     selectorChildren ||
     [];
 
-  for (const child of children) element.appendChild(child);
+  for (const child of children) {
+    if (assert<Function>(child, "function")) {
+      const computedChild = child(element);
+      if (computedChild) element.appendChild(h(computedChild as HTMLElement[]));
+    } else {
+      element.appendChild(child);
+    }
+  }
 
   return element;
 }
