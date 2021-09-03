@@ -139,6 +139,10 @@ export function h(
   return element;
 }
 
+export function text(content: string): Text {
+  return document.createTextNode(content);
+}
+
 export function render(
   template: HTMLElement | DocumentFragment | HTMLElement[],
   root: HTMLElement
