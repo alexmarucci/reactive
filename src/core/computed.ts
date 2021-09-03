@@ -18,8 +18,8 @@ export function computedx(computedFunction: Function, condition = () => true) {
   const [getComputedValue, setComputedValue] = observable();
 
   effect(() => {
-    if (condition()) setComputedValue(computedFunction());
-  });
+    setComputedValue(computedFunction());
+  }, condition);
 
   return getComputedValue;
 }

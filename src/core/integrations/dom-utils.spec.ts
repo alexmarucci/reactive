@@ -4,7 +4,8 @@ import {
   bindText,
   bindToAttibute,
   bindToProperty,
-  children
+  children,
+  mapArray
 } from "../dom-utils";
 import { observable } from "../observable";
 
@@ -191,5 +192,84 @@ describe("The children function", () => {
 
     toggleSwap();
     expect(element.innerHTML).toBe("<h1></h1><h1></h1>");
+  });
+});
+
+describe("the mapArray function", () => {
+  it("maps the items in the list", () => {
+    const mapFnSpy = jest.fn((a) => a);
+    const [list] = observable(["a", "b", "c"]);
+    const mapped = mapArray(list, mapFnSpy);
+
+    expect(mapped()).toEqual(list());
+  });
+
+  it("Runs only the map function on the added item", () => {
+    const mapFnSpy = jest.fn((a) => a);
+    const [list, setList] = observable(["a", "b", "c"]);
+
+    mapArray(list, mapFnSpy);
+
+    setList([...list(), "d"]);
+
+    expect(mapFnSpy).toHaveBeenCalledTimes(4);
+  });
+
+  it("Runs only the map function on the added item", () => {
+    const mapFnSpy = jest.fn((a) => a);
+    const [list, setList] = observable(["a", "b", "c"]);
+
+    mapArray(list, mapFnSpy);
+
+    setList([...list().filter((item) => item !== "c")]);
+
+    expect(mapFnSpy).toHaveBeenCalledTimes(4);
+  });
+
+  it("Returns the latest state of the list", () => {
+    const mapFnSpy = jest.fn((a) => a);
+    const [list, setList] = observable(["a", "b", "c"]);
+    const mapped = mapArray(list, mapFnSpy);
+
+    setList([...list(), "d"]);
+    expect(mapped()).toEqual(list());
+  });
+
+  it("Runs only the map function on the removed item", () => {
+    const mapFnSpy = jest.fn((a) => a);
+    const [list, setList] = observable(["a", "b", "c"]);
+    const mapped = mapArray(list, mapFnSpy);
+
+    setList([...list().filter((item) => item !== "c")]);
+    expect(mapped()).toEqual(list());
+  });
+
+  it("Runs only the map function on the changed item", () => {
+    const mapFnSpy = jest.fn((a) => a);
+    const [list, setList] = observable([
+      { text: "Foo" },
+      { text: "Foo" },
+      { text: "Foo" }
+    ]);
+    const mapped = mapArray(list, mapFnSpy);
+
+    setList([list[0], { text: "Bar" }, list[2]]);
+
+    expect(mapped()).toEqual(list());
+  });
+
+  it("Runs only the map function on the added item", () => {
+    const mapFnSpy = jest.fn((a) => a);
+    const [list, setList] = observable([
+      { text: "Foo" },
+      { text: "Foo" },
+      { text: "Foo" }
+    ]);
+
+    mapArray(list, mapFnSpy);
+
+    setList([list()[0], { text: "Bar" }, list()[2]]);
+
+    expect(mapFnSpy).toHaveBeenCalledTimes(4);
   });
 });
