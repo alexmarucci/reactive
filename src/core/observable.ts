@@ -4,7 +4,7 @@ import {
   getIsTransactionInProgress,
   pendingEffects
 } from "./internals/context";
-import { getActiveAsyncContext } from "./utils";
+import { equal, getActiveAsyncContext } from "./utils";
 
 let isTracking = true;
 
@@ -22,26 +22,18 @@ export function untrack(callback: Function) {
   return track(callback, false);
 }
 
-function equalValues<T>(value: T, newValue: T): boolean {
-  if (!Array.isArray(value) && !(typeof value === "object")) {
-    return value === newValue;
-  }
-
-  return false;
-}
-
 export class Observable<T = unknown> {
   private readonly subscriptions = new Set<Effect>();
 
   private value!: T;
   private previousValue?: T;
 
-  constructor(value: T, private readonly uniqueValues = true) {
-    this.setValue(value);
+  constructor(initialValue: T, private readonly uniqueValues = true) {
+    this.setValue(initialValue);
   }
 
   setValue(newValue: T) {
-    if (this.uniqueValues && equalValues(this.value, newValue)) {
+    if (this.uniqueValues && equal(this.value, newValue)) {
       return;
     }
 

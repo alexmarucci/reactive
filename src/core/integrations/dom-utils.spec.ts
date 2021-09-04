@@ -196,16 +196,18 @@ describe("The children function", () => {
 });
 
 describe("the mapArray function", () => {
+  const mapFunction = (a) => "map" + a;
+
   it("maps the items in the list", () => {
-    const mapFnSpy = jest.fn((a) => a);
+    const mapFnSpy = jest.fn(mapFunction);
     const [list] = observable(["a", "b", "c"]);
     const mapped = mapArray(list, mapFnSpy);
 
-    expect(mapped()).toEqual(list());
+    expect(mapped()).toEqual(list().map(mapFunction));
   });
 
   it("Runs only the map function on the added item", () => {
-    const mapFnSpy = jest.fn((a) => a);
+    const mapFnSpy = jest.fn(mapFunction);
     const [list, setList] = observable(["a", "b", "c"]);
 
     mapArray(list, mapFnSpy);
@@ -216,7 +218,7 @@ describe("the mapArray function", () => {
   });
 
   it("Runs only the map function on the added item", () => {
-    const mapFnSpy = jest.fn((a) => a);
+    const mapFnSpy = jest.fn(mapFunction);
     const [list, setList] = observable(["a", "b", "c"]);
 
     mapArray(list, mapFnSpy);
@@ -226,40 +228,8 @@ describe("the mapArray function", () => {
     expect(mapFnSpy).toHaveBeenCalledTimes(4);
   });
 
-  it("Returns the latest state of the list", () => {
-    const mapFnSpy = jest.fn((a) => a);
-    const [list, setList] = observable(["a", "b", "c"]);
-    const mapped = mapArray(list, mapFnSpy);
-
-    setList([...list(), "d"]);
-    expect(mapped()).toEqual(list());
-  });
-
-  it("Runs only the map function on the removed item", () => {
-    const mapFnSpy = jest.fn((a) => a);
-    const [list, setList] = observable(["a", "b", "c"]);
-    const mapped = mapArray(list, mapFnSpy);
-
-    setList([...list().filter((item) => item !== "c")]);
-    expect(mapped()).toEqual(list());
-  });
-
-  it("Runs only the map function on the changed item", () => {
-    const mapFnSpy = jest.fn((a) => a);
-    const [list, setList] = observable([
-      { text: "Foo" },
-      { text: "Foo" },
-      { text: "Foo" }
-    ]);
-    const mapped = mapArray(list, mapFnSpy);
-
-    setList([list[0], { text: "Bar" }, list[2]]);
-
-    expect(mapped()).toEqual(list());
-  });
-
   it("Runs only the map function on the added item", () => {
-    const mapFnSpy = jest.fn((a) => a);
+    const mapFnSpy = jest.fn(mapFunction);
     const [list, setList] = observable([
       { text: "Foo" },
       { text: "Foo" },
@@ -271,5 +241,60 @@ describe("the mapArray function", () => {
     setList([list()[0], { text: "Bar" }, list()[2]]);
 
     expect(mapFnSpy).toHaveBeenCalledTimes(4);
+  });
+
+  it("Returns the latest state of the list", () => {
+    const mapFnSpy = jest.fn(mapFunction);
+    const [list, setList] = observable(["a", "b", "c"]);
+    const mapped = mapArray(list, mapFnSpy);
+
+    setList([...list(), "d"]);
+    expect(mapped()).toEqual(list().map(mapFunction));
+  });
+
+  it("Runs only the map function on the removed item", () => {
+    const mapFnSpy = jest.fn(mapFunction);
+    const [list, setList] = observable(["a", "b", "c"]);
+    const mapped = mapArray(list, mapFnSpy);
+
+    setList([...list().filter((item) => item !== "c")]);
+    expect(mapped()).toEqual(list().map(mapFunction));
+  });
+
+  it("Runs only the map function on the changed item", () => {
+    const mapFnSpy = jest.fn((m) => mapFunction(m.text));
+    const [list, setList] = observable([
+      { text: "Foo" },
+      { text: "Foo" },
+      { text: "Foo" }
+    ]);
+    const b = performance.now();
+
+    const mapped = mapArray(list, mapFnSpy);
+
+    console.log("a", b - performance.now());
+
+    setList([list()[0], { text: "Bar" }, list()[2]]);
+
+    expect(mapped()).toEqual(list().map(({ text }) => mapFunction(text)));
+  });
+
+  it.skip("perf", () => {
+    const size = 1000000;
+    const mapFnSpy = jest.fn((m) => mapFunction(m.text));
+    const [list, setList] = observable(new Array(size).fill({ text: "a" }));
+
+    const b = performance.now();
+    const mapped = mapArray(list, mapFnSpy);
+    console.log("a", performance.now() - b);
+
+    const bb = performance.now();
+    setList([...list(), { text: "X" }]);
+    console.log("after set", performance.now() - bb);
+
+    const bbb = performance.now();
+    expect(mapped()).toEqual(list().map(({ text }) => mapFunction(text)));
+    expect(mapFnSpy).toHaveBeenCalledTimes(size + 1);
+    console.log("afterall", performance.now() - bbb);
   });
 });

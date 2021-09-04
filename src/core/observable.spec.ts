@@ -142,3 +142,31 @@ describe("the whenChanged function", () => {
     expect(effectSpy).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("The observable array", () => {
+  it("returns the array", () => {
+    const [list] = observable([1, 2, 3]);
+
+    expect(list()).toEqual([1, 2, 3]);
+  });
+
+  it("triggers if the array changes", () => {
+    const [list, setList] = observable([1, 2, 3]);
+    const effectSpy = jest.fn(list);
+
+    effect(effectSpy);
+    setList([1, 2, 4]);
+
+    expect(effectSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores same array values", () => {
+    const [list, setList] = observable([1, 2, 3]);
+    const effectSpy = jest.fn(list);
+
+    effect(effectSpy);
+    setList([1, 2, 3]);
+
+    expect(effectSpy).toHaveBeenCalledTimes(1);
+  });
+});

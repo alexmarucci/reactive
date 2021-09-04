@@ -1,6 +1,7 @@
 import { effect } from "../../src/core/effect";
 import { computed } from "./computed";
 import { observable, previousValue, untrack } from "./observable";
+import { equal } from "./utils";
 
 function resolve(textOrComputed: unknown | Function) {
   return typeof textOrComputed === "function"
@@ -147,43 +148,54 @@ export function children(expression: () => HTMLElement | HTMLElement[]) {
   };
 }
 
-function isObject(object) {
-  return object != null && typeof object === "object";
-}
-
-function objDeepEqual(object1, object2) {
-  const keys1 = Object.keys(object1);
-  const keys2 = Object.keys(object2);
-
-  if (keys1.length !== keys2.length) {
-    return false;
-  }
-
-  for (const key of keys1) {
-    const val1 = object1[key];
-    const val2 = object2[key];
-    const areObjects = isObject(val1) && isObject(val2);
-    if (
-      (areObjects && !objDeepEqual(val1, val2)) ||
-      (!areObjects && val1 !== val2)
-    ) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function equal<T>(itemA: T, itemB: T): boolean {
-  if (isObject(itemA) && isObject(itemB)) {
-    const eq = objDeepEqual(itemA, itemB);
-    return eq;
-  }
-
-  return itemA === itemB;
-}
-
 export function mapArray<T, U>(
+  itemList: () => T[],
+  sideEffect: (item: T) => U,
+  equalityComparator = equal
+): () => U[] {
+  function getAdded<T>(previous: T[], current: T[]): T[] {
+    return current.filter(
+      (cItem) => !previous.some((pItem) => equalityComparator(pItem, cItem))
+    );
+  }
+
+  const reRunWhenDifferent = () =>
+    !previousValue(itemList) ||
+    !equalityComparator(previousValue(itemList), itemList());
+
+  const previousMap = new Map([]);
+
+  const mapped = computed(() => {
+    const currentList = itemList();
+    const previousList = previousValue(itemList) || [];
+
+    const added = getAdded(previousList, currentList);
+    const removed = getAdded(currentList, previousList);
+
+    untrack(() =>
+      removed.map((item) => {
+        previousMap.delete(item);
+        return sideEffect(item);
+      })
+    );
+
+    return itemList().map((item) => {
+      if (added.some((itemToMap) => equalityComparator(itemToMap, item))) {
+        return untrack(() => {
+          const mapValue = sideEffect(item);
+          previousMap.set(item, mapValue);
+          return mapValue;
+        });
+      } else {
+        return previousMap.get(item);
+      }
+    });
+  }, reRunWhenDifferent);
+
+  return mapped;
+}
+
+export function mapArrayPerf<T, U>(
   itemList: () => T[],
   sideEffect: (item: T) => U,
   equalityComparator = equal
@@ -197,29 +209,46 @@ export function mapArray<T, U>(
     return false;
   }
 
-  function getAdded<T>(previous: T[], current: T[]): T[] {
-    return current.filter(
-      (cItem) => !previous.some((pItem) => equalityComparator(pItem, cItem))
-    );
-  }
-
   const reRunWhenDifferent = () =>
     !previousValue(itemList) || !deepEqual(previousValue(itemList), itemList());
+
+  const itemListSet = new Set(itemList());
+  const previousMap = new Map([]);
 
   const mapped = computed(() => {
     const currentList = itemList();
     const previousList = previousValue(itemList) || [];
 
-    const added = getAdded(previousList, currentList);
-    const removed = getAdded(currentList, previousList);
+    let added = [];
+    let removed = [];
 
-    untrack(() => removed.map(sideEffect));
+    if (previousList) {
+      for (const currentItem of currentList) {
+        if (!itemListSet.has(currentItem)) {
+          added.push(currentItem);
+          itemListSet.add(currentItem);
+        }
+      }
+    } else {
+      added = currentList;
+    }
+
+    untrack(() =>
+      removed.map((item) => {
+        previousMap.delete(item);
+        return sideEffect(item);
+      })
+    );
 
     return itemList().map((item) => {
       if (added.some((itemToMap) => equalityComparator(itemToMap, item))) {
-        return untrack(() => sideEffect(item));
+        return untrack(() => {
+          const mapValue = sideEffect(item);
+          previousMap.set(item, mapValue);
+          return mapValue;
+        });
       } else {
-        return item;
+        return previousMap.get(item);
       }
     });
   }, reRunWhenDifferent);
