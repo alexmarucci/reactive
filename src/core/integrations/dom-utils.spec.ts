@@ -295,6 +295,6 @@ describe("the mapArray function", () => {
     const bbb = performance.now();
     expect(mapped()).toEqual(list().map(({ text }) => mapFunction(text)));
     expect(mapFnSpy).toHaveBeenCalledTimes(size + 1);
-    console.log("afterall", performance.now() - bbb);
+    console.log("after all", performance.now() - bbb);
   });
 });

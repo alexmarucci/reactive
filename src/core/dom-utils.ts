@@ -206,7 +206,8 @@ export function mapArray<T, U>(
 
 export function forEach<T, K>(
   list$: ObservableArray<T>,
-  mapFunction: (item: T) => K
+  mapFunction: (item: T) => K,
+  { changeDetection } = { changeDetection: false }
 ) {
   const itemElementMap = new Map<T, K | Comment>([]);
 
@@ -225,10 +226,12 @@ export function forEach<T, K>(
 
     list$.subscribe(
       (item: T) => {
-        console.log("adding", item, element);
         element.appendChild(getItemElement(item));
       },
       (item: T, oldItem: T) => {
+        if (!changeDetection) return;
+
+        itemElementMap.set(item, itemElementMap.get(oldItem) as Comment);
         element.replaceChild(getItemElement(item), getItemElement(oldItem));
         itemElementMap.delete(oldItem);
       },

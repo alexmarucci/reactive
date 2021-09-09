@@ -4,12 +4,12 @@ import {
   bindToProperty,
   forEach
 } from "../../../../src/core/dom-utils";
-import { effect } from "../../../../src/core/effect";
 import { observable } from "../../../../src/core/observable";
-import { h } from "../../../../src/render/h";
+import { h as hh } from "../../../../src/render/h";
+import { h, div, button, input } from "../../../../src/render/dom";
 import { todoStore } from "../../store/todos";
 
-const [{ todos$ }] = todoStore();
+const [{ todos$ }, { changeText, toggleActive, removeTodo }] = todoStore();
 
 const [editedElement, setEditedElement] = observable<HTMLLabelElement>();
 const isEditing = (label) => label === editedElement();
@@ -20,34 +20,38 @@ window.addEventListener("click", (e) => {
 });
 
 const TodoItem = (todo) => {
-  const [value, setValue] = observable(todo);
-  const TodoLabel = h("label");
-  const TodoInput = h("input", { class: "edit" });
-
-  const setEditView = () => {
-    setEditedElement(TodoLabel);
-    TodoInput.focus();
-    setValue(todo);
+  const todo$ = todos$.observe(todo) as {
+    text: () => string;
+    completed: () => boolean;
   };
 
-  return h(
-    "li",
-    { class: bindClass`${() => isEditing(TodoLabel) && "editing"}` },
-    [
-      h("div", { class: "view", ondblclick: setEditView }, [
-        h("input", { class: "toggle", type: "checkbox" }),
-        h(TodoLabel, bindText`${value}`),
-        h("button", {
-          class: "destroy",
-          onclick: () => todos$.remove(todo)
-        })
-      ]),
-      h(TodoInput, {
-        oninput: () => setValue(TodoInput.value),
-        value: bindToProperty(value)
-      })
-    ]
-  );
+  console.log("Re=runs");
+
+  const todo_label = h("label");
+  const todo_input = input({ class: "edit" });
+
+  const setEditView = () => {
+    setEditedElement(todo_label.node);
+    todo_input.focus();
+    todo_input.value = todo$.text();
+  };
+
+  const checkbox = h("input", { class: "toggle", type: "checkbox" });
+  const li = h("li", {
+    class: bindClass`${() => isEditing(todo_label.node) && "editing"}`
+  });
+
+  return li([
+    div({ class: "view" }, [
+      checkbox({
+        onchange: () => toggleActive(todo),
+        checked: bindToProperty(todo$.completed)
+      }),
+      todo_label({ ondblclick: setEditView }, bindText`${todo$.text}`),
+      button({ class: "destroy", onclick: () => removeTodo(todo) })
+    ]),
+    h(todo_input, { onchange: () => changeText(todo, todo_input.value) })
+  ]);
 };
 
 // const mapped = mapArray(todos, (todo) => {
@@ -55,6 +59,6 @@ const TodoItem = (todo) => {
 //   return to;
 // });
 
-export const TodoList = h("ul", { class: "todo-list" }, [
+export const TodoList = hh("ul", { class: "todo-list" }, [
   forEach(todos$, (todo) => TodoItem(todo))
 ]);

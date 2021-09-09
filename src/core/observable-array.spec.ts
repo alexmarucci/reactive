@@ -7,6 +7,19 @@ describe("The observableArray function", () => {
     expect(list.read()).toEqual([{ a: 1 }, { b: 2 }]);
   });
 
+  it.only("handles multiple subscriptions", () => {
+    const addCallbackSpy1 = jest.fn();
+    const addCallbackSpy2 = jest.fn();
+    const list = observableArray([{ a: 1 }, { b: 2 }]);
+
+    list.subscribe(addCallbackSpy1);
+    list.subscribe(addCallbackSpy2);
+    list.push({ b: 3 });
+
+    expect(addCallbackSpy1).toHaveBeenCalledWith({ b: 3 });
+    expect(addCallbackSpy2).toHaveBeenCalledWith({ b: 3 });
+  });
+
   it("triggers the addCallback when an element is added", () => {
     const addCallbackSpy = jest.fn();
     const list = observableArray([{ a: 1 }, { b: 2 }]);

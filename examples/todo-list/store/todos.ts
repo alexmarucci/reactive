@@ -1,11 +1,13 @@
 import { observableArray } from "../../../src/core/observable-array";
 
-const todos$ = observableArray([]);
+const todos$ = observableArray<{ completed: boolean; text: string }>([]);
 
 export function todoStore() {
   const getters = { todos: () => todos$.read(), todos$ };
   const actions = {
-    addTodo: (todo) => todos$.push(todo),
+    addTodo: (text) => todos$.push({ text, completed: false }),
+    changeText: (todo, text) => todos$.patch(todo, { text }),
+    toggleActive: (todo) => todos$.patch(todo, { completed: !todo.completed }),
     removeTodo: (todo) => todos$.remove(todo)
   };
 

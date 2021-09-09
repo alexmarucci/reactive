@@ -1,4 +1,4 @@
-import { Observable } from "./observable";
+import { observable, Observable } from "./observable";
 
 type Callback<T> = (item: T, oldItem?: T) => void;
 
@@ -20,9 +20,9 @@ export class ObservableArray<T extends {}> {
   private arrayLength = this.initialValue.length;
 
   private readonly callbacks = {
-    addCallback: (item: T) => {},
-    changeCallback: (item: T, oldItem: T) => {},
-    removeCallback: (item: T) => {}
+    addCallback: [] as Array<(item: T) => void>,
+    changeCallback: [] as Array<(item: T, oldItem: T) => void>,
+    removeCallback: [] as Array<(item: T) => void>
   };
 
   constructor(private readonly initialValue: T[] = []) {}
@@ -34,7 +34,7 @@ export class ObservableArray<T extends {}> {
   push(item: T) {
     this.array.push(item);
 
-    this.callbacks.addCallback(item);
+    this.callbacks.addCallback.forEach((s) => s(item));
 
     this.internalObservable.setValue(this.array);
 
@@ -44,7 +44,7 @@ export class ObservableArray<T extends {}> {
   pop() {
     const poppedItem = this.array.pop();
 
-    this.callbacks.removeCallback(poppedItem);
+    this.callbacks.removeCallback.forEach((s) => s(poppedItem));
     this.internalObservable.setValue(this.array);
 
     return poppedItem;
@@ -53,7 +53,7 @@ export class ObservableArray<T extends {}> {
   shift() {
     const shiftedItem = this.array.shift();
 
-    this.callbacks.removeCallback(shiftedItem);
+    this.callbacks.removeCallback.forEach((s) => s(shiftedItem));
     this.internalObservable.setValue(this.array);
 
     return shiftedItem;
@@ -70,7 +70,7 @@ export class ObservableArray<T extends {}> {
     this.arrayIndexMap.delete(item);
     this.arrayIndexMap.set(newItem, id);
 
-    this.callbacks.changeCallback(newItem, item);
+    this.callbacks.changeCallback.forEach((s) => s(newItem, item));
     this.internalObservable.setValue(this.array);
   }
 
@@ -78,8 +78,29 @@ export class ObservableArray<T extends {}> {
     const id = this.arrayIndexMap.get(item);
     this.array.splice(id, 1);
     this.arrayIndexMap.delete(item);
-    this.callbacks.removeCallback(item);
+    this.callbacks.removeCallback.forEach((s) => s(item));
     this.internalObservable.setValue(this.array);
+  }
+
+  observe<K extends keyof T>(todo: T, props = Object.keys(todo) as Array<K>) {
+    const writes = {};
+    const reads = {};
+
+    for (const prop of props) {
+      const [read, write] = observable(todo[prop]);
+      reads[prop as string] = read;
+      writes[prop as string] = write;
+    }
+
+    this.subscribe(undefined, (newTodo, oldTodo) => {
+      if (oldTodo === todo) {
+        for (const prop of props) {
+          writes[prop as string](newTodo[prop]);
+        }
+      }
+    });
+
+    return reads as Record<K, () => T[K]>;
   }
 
   subscribe(
@@ -87,9 +108,9 @@ export class ObservableArray<T extends {}> {
     changeCallback?: Callback<T>,
     removeCallback?: Callback<T>
   ) {
-    if (addCallback) this.callbacks.addCallback = addCallback;
-    if (changeCallback) this.callbacks.changeCallback = changeCallback;
-    if (removeCallback) this.callbacks.removeCallback = removeCallback;
+    if (addCallback) this.callbacks.addCallback.push(addCallback);
+    if (changeCallback) this.callbacks.changeCallback.push(changeCallback);
+    if (removeCallback) this.callbacks.removeCallback.push(removeCallback);
   }
 }
 
