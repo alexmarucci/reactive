@@ -128,6 +128,18 @@ describe("The bindClass function", () => {
     expect(element.className).toBe("active");
   });
 
+  it("updates when bound to boolean expression", () => {
+    const element = document.createElement("div");
+    const [isActive, setIsActive] = observable(true);
+
+    bindClass`${() => isActive() && "active"}`(element);
+
+    expect(element.className).toBe("active");
+
+    setIsActive(false);
+    expect(element.className).toBe("");
+  });
+
   it("filters falsy values", () => {
     expectBindClassname`${false && "class"} ${undefined}`.toBe("");
   });

@@ -1,6 +1,7 @@
 import { effect } from "../../src/core/effect";
 import { computed } from "./computed";
 import { observable, previousValue, untrack } from "./observable";
+import { ObservableArray, observableArray } from "./observable-array";
 import { equal } from "./utils";
 
 function resolve(textOrComputed: unknown | Function) {
@@ -56,6 +57,8 @@ export function bindClass(
   staticText: TemplateStringsArray,
   ...dynamic: Array<(() => string | boolean) | string | boolean>
 ) {
+  const previousExpressionMap = new Map<unknown, string>([]);
+
   return (element: HTMLElement) => {
     // add static classes
     for (const part of staticText) {
@@ -67,9 +70,15 @@ export function bindClass(
       if (!dynamicPart) continue;
 
       effect(() => {
+        const previousValue = previousExpressionMap.get(dynamic);
         const computedText = resolve(dynamicPart);
+        previousExpressionMap.set(dynamic, computedText);
 
-        if (computedText) element.className += computedText;
+        if (computedText) {
+          element.className += computedText;
+        } else if (previousValue && element.classList.contains(previousValue)) {
+          element.classList.remove(previousValue);
+        }
       });
     }
   };
@@ -195,63 +204,38 @@ export function mapArray<T, U>(
   return mapped;
 }
 
-export function mapArrayPerf<T, U>(
-  itemList: () => T[],
-  sideEffect: (item: T) => U,
-  equalityComparator = equal
-): () => U[] {
-  function deepEqual<T>(previous: T[], current: T[]): boolean {
-    if (previous.length === current.length) {
-      return previous.every((value, index) =>
-        equalityComparator(value, current[index])
-      );
+export function forEach<T, K>(
+  list$: ObservableArray<T>,
+  mapFunction: (item: T) => K
+) {
+  const itemElementMap = new Map<T, K | Comment>([]);
+
+  function getItemElement(item: T): HTMLElement | Comment | Text {
+    if (!itemElementMap.has(item)) {
+      itemElementMap.set(item, mapFunction(item) || document.createComment(""));
     }
-    return false;
+
+    return (itemElementMap.get(item) as unknown) as HTMLElement;
   }
 
-  const reRunWhenDifferent = () =>
-    !previousValue(itemList) || !deepEqual(previousValue(itemList), itemList());
-
-  const itemListSet = new Set(itemList());
-  const previousMap = new Map([]);
-
-  const mapped = computed(() => {
-    const currentList = itemList();
-    const previousList = previousValue(itemList) || [];
-
-    let added = [];
-    let removed = [];
-
-    if (previousList) {
-      for (const currentItem of currentList) {
-        if (!itemListSet.has(currentItem)) {
-          added.push(currentItem);
-          itemListSet.add(currentItem);
-        }
-      }
-    } else {
-      added = currentList;
+  return (element: HTMLElement) => {
+    for (const item of list$.read()) {
+      element.appendChild(getItemElement(item));
     }
 
-    untrack(() =>
-      removed.map((item) => {
-        previousMap.delete(item);
-        return sideEffect(item);
-      })
-    );
-
-    return itemList().map((item) => {
-      if (added.some((itemToMap) => equalityComparator(itemToMap, item))) {
-        return untrack(() => {
-          const mapValue = sideEffect(item);
-          previousMap.set(item, mapValue);
-          return mapValue;
-        });
-      } else {
-        return previousMap.get(item);
+    list$.subscribe(
+      (item: T) => {
+        console.log("adding", item, element);
+        element.appendChild(getItemElement(item));
+      },
+      (item: T, oldItem: T) => {
+        element.replaceChild(getItemElement(item), getItemElement(oldItem));
+        itemElementMap.delete(oldItem);
+      },
+      (item: T) => {
+        element.removeChild(getItemElement(item));
+        itemElementMap.delete(item);
       }
-    });
-  }, reRunWhenDifferent);
-
-  return mapped;
+    );
+  };
 }

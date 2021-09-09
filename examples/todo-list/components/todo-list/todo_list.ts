@@ -1,29 +1,36 @@
-import { computed } from "../../../../src/core/computed";
-import { bindText, children, mapArray } from "../../../../src/core/dom-utils";
+import { bindClass, forEach } from "../../../../src/core/dom-utils";
 import { observable } from "../../../../src/core/observable";
 import { h } from "../../../../src/render/h";
 import { todoStore } from "../../store/todos";
 
-const [{ todos }] = todoStore();
+const [{ todos$ }] = todoStore();
 
-let t = 0;
+const [editedElement, setEditedElement] = observable<HTMLLabelElement>();
+const isEditing = () => !!editedElement();
+const unsetIsEditing = () => setEditedElement(null);
+
+window.addEventListener("click", (e) => {
+  if (e.target !== editedElement()) unsetIsEditing();
+});
+
 const TodoItem = (todo) => {
-  console.log("running", ++t);
-  console.log("todo", todo);
-  return h("li", { class: "" }, [
-    h("div", { class: "view" }, [
+  const TodoLabel = h("label", todo);
+
+  return h("li", { class: bindClass`${() => isEditing() && "editing"}` }, [
+    h("div", { class: "view", ondblclick: () => setEditedElement(TodoLabel) }, [
       h("input", { class: "toggle", type: "checkbox" }),
-      h("label", todo),
-      h("button", { class: "destroy" })
+      TodoLabel,
+      h("button", { class: "destroy", onclick: () => todos$.remove(todo) })
     ]),
     h("input", { class: "edit" })
   ]);
 };
 
-const mapped = mapArray(todos, (todo) => {
-  const to = TodoItem(todo);
-  return to;
-});
+// const mapped = mapArray(todos, (todo) => {
+//   const to = TodoItem(todo);
+//   return to;
+// });
+
 export const TodoList = h("ul", { class: "todo-list" }, [
-  children(() => mapped())
+  forEach(todos$, (todo) => TodoItem(todo))
 ]);

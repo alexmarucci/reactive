@@ -1,12 +1,12 @@
-import { observable } from "../../../src/core/observable";
+import { observableArray } from "../../../src/core/observable-array";
 
-const [todos, setTodos] = observable([]);
+const todos$ = observableArray([]);
 
 export function todoStore() {
-  const getters = { todos };
+  const getters = { todos: () => todos$.read(), todos$ };
   const actions = {
-    addTodo: (todo) => setTodos([...todos(), todo]),
-    removeTodo: ({ id }) => setTodos(todos().filter((todo) => todo.id === id))
+    addTodo: (todo) => todos$.push(todo),
+    removeTodo: (todo) => todos$.remove(todo)
   };
 
   return [getters, actions] as [typeof getters, typeof actions];
