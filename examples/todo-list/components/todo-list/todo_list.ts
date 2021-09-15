@@ -5,8 +5,7 @@ import {
   forEach
 } from "../../../../src/core/dom-utils";
 import { observable } from "../../../../src/core/observable";
-import { h as hh } from "../../../../src/render/h";
-import { h, div, button, input } from "../../../../src/render/dom";
+import { h, div, button, input, ul } from "../../../../src/render/dom";
 import { todoStore } from "../../store/todos";
 
 const [{ todos$ }, { changeText, toggleActive, removeTodo }] = todoStore();
@@ -24,8 +23,6 @@ const TodoItem = (todo) => {
     text: () => string;
     completed: () => boolean;
   };
-
-  console.log("Re=runs");
 
   const todo_label = h("label");
   const todo_input = input({ class: "edit" });
@@ -54,11 +51,6 @@ const TodoItem = (todo) => {
   ]);
 };
 
-// const mapped = mapArray(todos, (todo) => {
-//   const to = TodoItem(todo);
-//   return to;
-// });
-
-export const TodoList = hh("ul", { class: "todo-list" }, [
+export const TodoList = ul({ class: "todo-list" }, [
   forEach(todos$, (todo) => TodoItem(todo))
 ]);
